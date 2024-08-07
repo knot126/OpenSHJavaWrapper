@@ -2,7 +2,11 @@ package com.mediocre.smashhit;
 
 import android.annotation.SuppressLint;
 import android.app.NativeActivity;
+import android.app.UiModeManager;
 import android.content.Context;
+import android.content.Intent;
+import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
 import android.os.PowerManager;
@@ -88,7 +92,15 @@ public class Main extends NativeActivity {
                 getWindowManager().getDefaultDisplay().getMetrics(metrics);
                 return Integer.toString(metrics.densityDpi);
             case "visiturl":
-                // todo
+                if (words.length > 1) {
+                    try {
+                        Intent myIntent = new Intent("android.intent.action.VIEW", Uri.parse(words[1]));
+                        startActivity(myIntent);
+                    }
+                    catch (Exception e) {
+                        System.out.println(e);
+                    }
+                }
                 break;
             case "getlanguage":
                 return Locale.getDefault().getLanguage();
@@ -97,6 +109,10 @@ public class Main extends NativeActivity {
                 break;
             case "istv":
                 // todo
+                UiModeManager uiModeManager = (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
+                if (uiModeManager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION) {
+                    return "true";
+                }
                 return "false";
             case "storeenabled":
                 // todo (but probably not)
