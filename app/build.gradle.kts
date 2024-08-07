@@ -1,18 +1,16 @@
-import com.android.build.api.dsl.AaptOptions
-
 plugins {
     alias(libs.plugins.android.application)
 }
 
 android {
     namespace = "com.mediocre.smashhit"
-    compileSdk = 23
+    compileSdk = 26
 
     defaultConfig {
         applicationId = "com.mediocre.smashhit"
         minSdk = 9
         //noinspection ExpiredTargetSdkVersion
-        targetSdk = 23
+        targetSdk = 26
         versionCode = 10000
         versionName = "1.0.0"
 
@@ -45,9 +43,5 @@ android {
     androidResources {
         noCompress += listOf("mp3")
     }
-
-    //buildFeatures {
-    //    viewBinding = true
-    //}
 }
 

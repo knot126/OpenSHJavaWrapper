@@ -7,12 +7,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Build;
+import android.os.Process;
 import android.os.PowerManager;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.util.Log;
+import android.view.WindowManager;
 
 import java.util.List;
 import java.util.Locale;
@@ -21,9 +24,55 @@ public class Main extends NativeActivity {
     public static final String TAG = "smashhit";
     public static final String gAppName = "smashhit";
     private PowerManager.WakeLock wakeLock;
+    public BackgroundThread mThread;
 
     void complain(String message) {
         Log.e(TAG, "**** Error: " + message);
+    }
+
+    class BackgroundThread extends AsyncTask<Object, Integer, Long> {
+        public Main mMain;
+        public boolean mCurrentWakeLock;
+        public boolean mWantedWakeLock;
+        public boolean mQuitFlag;
+
+        BackgroundThread(Main main) {
+            this.mMain = main;
+        }
+
+        @Override
+        public Long doInBackground(Object... _unused) {
+            while (true) {
+                publishProgress(0);
+                try {
+                    Thread.sleep(50L);
+                }
+                catch (Exception e) {}
+            }
+        }
+
+        @Override
+        public void onProgressUpdate(Integer... _unused) {
+            try {
+                // Quit on a request to quit the game
+                if (this.mQuitFlag) {
+                    Process.killProcess(Process.myPid());
+                }
+
+                // Makes the window take the full screen regardless of UI elements
+                if (this.mCurrentWakeLock != this.mWantedWakeLock) {
+                    this.mCurrentWakeLock = this.mWantedWakeLock;
+                    if (this.mCurrentWakeLock) {
+                        this.mMain.getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN);
+                    } else {
+                        this.mMain.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN);
+                    }
+                }
+            }
+            catch (Exception e) {
+                this.mMain.complain(e.toString());
+            }
+        }
     }
 
     @SuppressLint("InvalidWakeLockTag")
@@ -34,6 +83,11 @@ public class Main extends NativeActivity {
         // Smash Hit uses "Movie" so I use it too :P
         this.wakeLock = ((PowerManager) getSystemService(Context.POWER_SERVICE)).newWakeLock(10, "Movie");
 
+        // Create the background thread (handles some stuff)
+        this.mThread = new BackgroundThread(this);
+        this.mThread.execute(1);
+
+        // Some type of hack, probably
         if (Build.VERSION.SDK_INT >= 19) {
             setSystemUiFlags();
             getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
@@ -82,6 +136,13 @@ public class Main extends NativeActivity {
 
         switch (words[0]) {
             case "setalwayson":
+                if (words.length > 1) {
+                    if (words[1].equals("true")) {
+                        this.mThread.mWantedWakeLock = true;
+                    } else {
+                        this.mThread.mWantedWakeLock = false;
+                    }
+                }
                 break;
             case "getosname":
                 return Build.VERSION.RELEASE;
@@ -105,7 +166,7 @@ public class Main extends NativeActivity {
             case "getlanguage":
                 return Locale.getDefault().getLanguage();
             case "quit":
-                // todo
+                this.mThread.mQuitFlag = true;
                 break;
             case "istv":
                 // todo
@@ -177,7 +238,9 @@ public class Main extends NativeActivity {
 
     public String command(String cmd) {
         String result = command_(cmd);
-        Log.i(TAG, "Got command '" + cmd + "' with result '" + result + "'");
+        if (!cmd.equals("issignedin")) {
+            Log.i(TAG, "Got command '" + cmd + "' with result '" + result + "'");
+        }
         return result;
     }
 }
